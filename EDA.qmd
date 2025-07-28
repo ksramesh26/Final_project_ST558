@@ -1,25 +1,215 @@
 ---
-title: "EDA"
+title: "Exploratory Data Analysis of Diabetes Health Indicators"
+author: Keshav Ramesh
 format: html
 ---
+## Introduction
+Here we are going to analyse and explore the 2015 BRFSS Diabetes Health Indicators data set 
 
-## Quarto
+**Variables**
 
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+Response variable: Diabetes_binary
 
-## Running Code
+Demographics Variables: Age, Education, Smoker, Sex, Income
 
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+Clinical Variables: BMI, PhysActivity, HighBP, HighChol, CholCheck, Stroke, HeartDiseaseOrAttack, ...
+
+
+
+### Purpose of the EDA
+
+For this EDA I will explore Age, Physical Activity, and BMI, as all three variables have strong well established links as risk factors for Diabetes. 
+
+Physical Activity helps regulate blood glucose, and constant sedentary behavior has been linked to increases diabetic risk.  
+
+Age leads to diabetic incidence rising as beta-cell function declines
+
+BMI is a well established risk factor and high amount of fat lead to insulin resistance
+
+
+
+
 
 ```{r}
-1 + 1
+# Read In packages
+library(tidyverse)
 ```
 
-You can add options to executable code like this 
+Read in data
+```{r}
+
+data_raw = read_csv("diabetes_binary_health_indicators_BRFSS2015.csv")
+
+# convert variables to factors
+diabetes_data = data_raw %>%
+  mutate(
+    Diabetes_binary = factor(Diabetes_binary, levels = c(0, 1), labels = c("No Diabetes", "Diabetes")),
+    PhysActivity = factor(PhysActivity, levels = c(0, 1), labels = c("No", "Yes")),
+    AgeGroup = factor(Age, levels = 1:13, labels = c(
+  "18–24",
+  "25–29",
+  "30–34",
+  "35–39",
+  "40–44",
+  "45–49",
+  "50–54",
+  "55–59",
+  "60–64",
+  "65–69",
+  "70–74",
+  "75–79",
+  "80+"
+))
+)
+
+## Check for missingness
+
+summary(diabetes_data)
+colSums(is.na(diabetes_data))
+```
+
+### Univariate Exploration
+
+Here I am going to check the proportion of diabetics in the dataset
 
 ```{r}
-#| echo: false
-2 * 2
+diabetes_data %>%
+  count(Diabetes_binary) %>%
+  mutate(Percent = n / sum(n) * 100)
+
+
+diabetes_data %>% ggplot(
+  aes(
+    x = Diabetes_binary, 
+    fill = Diabetes_binary)) +
+  geom_bar() +
+  labs(title = "Diabetes Status Distribution",
+       x = "Diabetes",
+       y = "Count") +
+  theme_minimal()
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+Looking at the age distributions throughout the dataset
+
+```{r}
+diabetes_data %>%
+  ggplot(aes(x = AgeGroup, fill = AgeGroup)) +
+  geom_bar() +
+  labs(
+    title = "Age Group Distribution",
+       x = "Age Group",
+       y = "Count") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+```
+
+
+Looking at the physical activity among participants:
+
+```{r}
+diabetes_data %>%
+  ggplot(aes(x = PhysActivity, fill = PhysActivity)) +
+  geom_bar() +
+  labs(title = "Physical Activity Distribution",
+       x = "Physically Active?",
+       y = "Count") +
+  theme_minimal()
+```
+
+Looking at BMI data across the data
+
+```{r}
+diabetes_data %>%
+  ggplot(aes(x = BMI)) +
+  geom_histogram(binwidth = 1, fill = "steelblue", color = "black") +
+  labs(title = "BMI Distribution",
+       x = "BMI",
+       y = "Count") +
+  theme_minimal()
+```
+
+### Bivariate exploration
+
+See how diabetes changes between age groups 
+
+```{r}
+diabetes_data %>%
+  ggplot(aes(x = AgeGroup, fill = Diabetes_binary)) +
+  geom_bar(position = "fill") +
+  labs(title = "Proportion of Diabetes by Age Group", x = "Age Group", y = "Proportion") +
+  scale_y_continuous(labels = scales::percent) +
+  theme_minimal() 
+
+```
+
+
+diabetes vs physical activity
+```{r}
+diabetes_data %>%
+  ggplot(aes(x = PhysActivity, fill = Diabetes_binary)) +
+  geom_bar(position = "fill") +
+  labs(title = "Diabetes by Physical Activity", x = "Physically Active", y = "Proportion") +
+  scale_y_continuous(labels = scales::percent) +
+  theme_minimal()
+
+```
+diabetes vs BMI
+
+```{r}
+diabetes_data %>%
+  ggplot(aes(x = Diabetes_binary, y = BMI, fill = Diabetes_binary)) +
+  geom_violin() +
+  labs(title = "BMI by Diabetes Status", x = "Diabetes Status", y = "BMI") +
+  theme_minimal()
+
+```
+
+```{r}
+diabetes_data %>%
+  ggplot(aes(x = BMI, fill = Diabetes_binary)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "BMI Density by Diabetes Status", x = "BMI", y = "Density") +
+  theme_minimal()
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
