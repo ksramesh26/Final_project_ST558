@@ -147,6 +147,9 @@ tidy(final_log_model)
 
 log_final_fit = log_workflow3 %>%
   last_fit(diabetes_split, metrics = metric_set(accuracy, mn_log_loss))
+
+log_final_fit %>%
+  collect_metrics
 ```
 
 
@@ -178,7 +181,7 @@ tree_workflow = workflow() %>%
 tree_grid = grid_regular(
   cost_complexity(),
   tree_depth(),
-  levels = list(cost_complexity = 5, tree_depth = 5)
+  levels = list(cost_complexity = 10, tree_depth = 5)
 )
 
 tree_fits = tree_workflow %>% 
@@ -201,7 +204,7 @@ tree_final_workflow = tree_workflow %>%
   finalize_workflow(tree_best_params)
 
 tree_final_fit = tree_final_workflow %>%
-  last_fit(diabetes_split)
+  last_fit(diabetes_split, metrics = metric_set(accuracy, mn_log_loss))
 
 tree_final_fit %>%
   collect_metrics()
@@ -268,15 +271,18 @@ rf_final_fit %>%
 ## Comparting Models
 
 ```{r}
-rf_final_fit %>%
-  collect_metrics
 
+log_final_fit %>%
+  collect_metrics
 
 tree_final_fit %>%
   collect_metrics()
 
+rf_final_fit %>%
+  collect_metrics
 ```
 
+Best model is Random forest 
 
 
 
