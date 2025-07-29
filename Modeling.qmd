@@ -150,6 +150,10 @@ log_final_fit = log_workflow3 %>%
 
 log_final_fit %>%
   collect_metrics
+
+log_final_model_train <- log_workflow3 %>%
+  fit(data = diabetes_train)
+log_final_model_train
 ```
 
 
@@ -209,6 +213,11 @@ tree_final_fit = tree_final_workflow %>%
 tree_final_fit %>%
   collect_metrics()
 
+tree_final_model_train <- tree_final_workflow %>%
+  fit(data = diabetes_train)
+
+tree_final_model_train
+
 tree_final_model = extract_workflow(tree_final_fit) 
 
 tree_final_model %>%
@@ -259,13 +268,19 @@ rf_best_params
 
 
 rf_final_workflow = rf_workflow %>%
-finalize_workflow(rf_best_params)
+  finalize_workflow(rf_best_params)
 
-rf_final_fit = rf_final_workflow %>%
-last_fit(diabetes_split, metrics = metric_set(accuracy, mn_log_loss))
+rf_final_fit = rf_final_workflow %>% 
+  last_fit(diabetes_split, metrics = metric_set(accuracy, mn_log_loss))
 
 rf_final_fit %>%
   collect_metrics()
+
+rf_final_model_train <- rf_final_workflow %>%
+  fit(data = diabetes_train)
+
+rf_final_model_train
+
 ```
 
 ## Comparting Models
@@ -281,8 +296,50 @@ tree_final_fit %>%
 rf_final_fit %>%
   collect_metrics
 ```
+```{r}
+# Extract final fitted workflows from last_fit objects
+log_final_model <- extract_workflow(log_final_fit)
+tree_final_model <- extract_workflow(tree_final_fit)
+rf_final_model <- extract_workflow(rf_final_fit)
 
-Best model is Random forest 
+# Generate predictions on test set for all three
+log_preds_test <- predict(log_final_model, diabetes_test, type = "prob") %>%
+  bind_cols(predict(log_final_model, diabetes_test)) %>%
+  bind_cols(diabetes_test %>% select(Diabetes_binary))
+
+tree_preds_test <- predict(tree_final_model, diabetes_test, type = "prob") %>%
+  bind_cols(predict(tree_final_model, diabetes_test)) %>%
+  bind_cols(diabetes_test %>% select(Diabetes_binary))
+
+rf_preds_test <- predict(rf_final_model, diabetes_test, type = "prob") %>%
+  bind_cols(predict(rf_final_model, diabetes_test)) %>%
+  bind_cols(diabetes_test %>% select(Diabetes_binary))
+
+
+```
+
+```{r}
+evaluate_model <- function(preds) {
+  tibble(
+    mn_log_loss = mn_log_loss(preds, truth = Diabetes_binary, .pred_Diabetes)$.estimate,
+    accuracy = accuracy(preds, truth = Diabetes_binary, estimate = .pred_class)$.estimate
+  )
+}
+
+results <- bind_rows(
+  evaluate_model(log_preds),
+  evaluate_model(tree_preds),
+  evaluate_model(rf_preds)
+) %>%
+  mutate(Model = c("Logistic Regression", "Classification Tree", "Random Forest")) %>%
+  select(Model, everything())
+
+results %>% arrange(mn_log_loss)
+
+```
+
+
+Best model is classification Tree
 
 
 

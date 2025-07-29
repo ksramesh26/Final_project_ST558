@@ -1,3 +1,10 @@
+# plumber.R
+
+#* @apiTitle Predicting Diabetes Risk API
+#* @apiDescription This API returns diabetes risk predictions using a random forest model trained on BRFSS 2015 data.
+
+
+
 library(tidyverse)
 library(tidymodels)
 library(plumber)
@@ -22,14 +29,21 @@ diabetes_data <- data_raw %>%
 diabetes_rec3 <- recipe(Diabetes_binary ~ BMI + AgeGroup + PhysActivity + HighChol + HighBP, data = diabetes_data) %>%
   step_normalize(all_numeric(), -Diabetes_binary)
 
-rf_spec = rand_forest(mtry = 2) %>% 
-  set_engine("ranger") %>% 
+# Define best classification tree model
+tree_spec = decision_tree(
+  cost_complexity = 1e-10,
+  tree_depth = 15,
+  min_n = 20
+) %>%
+  set_engine("rpart") %>%
   set_mode("classification")
 
+# Final model workflow
 final_model = workflow() %>% 
   add_recipe(diabetes_rec3) %>%
-  add_model(rf_spec) %>%
+  add_model(tree_spec) %>%
   fit(diabetes_data)
+
 
 #* Predict diabetes probability
 #* @post /pred
