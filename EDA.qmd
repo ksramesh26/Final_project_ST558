@@ -176,7 +176,7 @@ diabetes_data %>%
 
 
 
-
+[Click here for the Modeling Page](Modeling.html)
 
 
 
