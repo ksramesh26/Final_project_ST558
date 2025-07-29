@@ -27,9 +27,6 @@ Age leads to diabetic incidence rising as beta-cell function declines
 BMI is a well established risk factor and high amount of fat lead to insulin resistance
 
 
-
-
-
 ```{r}
 # Read In packages
 library(tidyverse)
@@ -182,7 +179,7 @@ diabetes_data %>%
 
 
 
-
+this is junk test to see if it shows up
 
 
 
