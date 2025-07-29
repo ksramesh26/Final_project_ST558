@@ -7,13 +7,14 @@ format: html
 ## Introduction
 
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 library(tidyverse)
 library(tidymodels)
 library(caret)
 library(yardstick)
 library(glmnet)
 library(rpart.plot)
+library(ranger)
 ```
 
 ```{r}
@@ -50,107 +51,158 @@ diabetes_split = initial_split(diabetes_data, prop = .7)
 diabetes_train = training(diabetes_split)
 diabetes_test = testing(diabetes_split)
 
-cv_folds <- vfold_cv(diabetes_train, 5)
+cv_folds = vfold_cv(diabetes_train, 5)
 
-diabetes_recipe = recipe(Diabetes_binary ~ BMI + Age + PhysActivity, data = diabetes_train) %>%
+```
+
+## Log Regression Model
+
+```{r}
+
+diabetes_rec1 = recipe(Diabetes_binary ~ BMI + Age + PhysActivity, data = diabetes_train) %>%
+  step_normalize(all_numeric(), -Diabetes_binary)
+
+diabetes_rec2 = recipe(Diabetes_binary ~ BMI + Age + PhysActivity + HighBP, data = diabetes_train) %>%
+  step_normalize(all_numeric(), -Diabetes_binary)
+
+diabetes_rec3 = recipe(Diabetes_binary ~ BMI + Age + PhysActivity + HighChol + HighBP, data = diabetes_train) %>%
   step_normalize(all_numeric(), -Diabetes_binary)
 ```
 
-Log Regression Model
-
+### Create Workflows
 ```{r}
 
-log_spec <- logistic_reg() %>%
+log_spec = logistic_reg() %>%
   set_engine("glm")
 
-log_workflow <- workflow() %>%
+log_workflow1 = workflow() %>%
   add_model(log_spec) %>%
-  add_recipe(diabetes_recipe)
+  add_recipe(diabetes_rec1)
+
+log_workflow2 = workflow() %>%
+  add_model(log_spec) %>%
+  add_recipe(diabetes_rec2)
+
+log_workflow3 = workflow() %>%
+  add_model(log_spec) %>%
+  add_recipe(diabetes_rec3)
 
 
-log_res <- log_workflow %>%
-  fit_resamples(
-    resamples = cv_folds,
-    metrics = metric_set(mn_log_loss),
-    control = control_resamples(save_pred = TRUE)
-  )
-
-collect_metrics(log_res)
 ```
 
-Fit Log Model
+### Fit to CV Folds
 ```{r}
-log_res_fit = log_workflow %>%
+log_res_fit1 = log_workflow1 %>%
+  fit_resamples(cv_folds, metrics = metric_set(accuracy,mn_log_loss))
+
+log_res_fit2 = log_workflow2 %>%
+  fit_resamples(cv_folds, metrics = metric_set(accuracy,mn_log_loss))
+
+log_res_fit3 = log_workflow3 %>%
+  fit_resamples(cv_folds, metrics = metric_set(accuracy,mn_log_loss))
+```
+
+### Collect Metrics
+```{r}
+rbind(log_res_fit1 %>% collect_metrics(),
+log_res_fit2 %>% collect_metrics(),
+log_res_fit3 %>% collect_metrics()) %>%
+mutate(Model = c("Model1", "Model1", "Model2", "Model2", "Model3", "Model3")) %>%
+select(Model, everything())
+```
+
+### Finding COnfustion Matrix
+```{r}
+log_train_fit = log_workflow3 %>%
   fit(diabetes_train)
 
 conf_mat(diabetes_train %>%
-           mutate(estimate = log_res_fit %>% 
+           mutate(estimate = log_train_fit %>% 
                     predict(diabetes_train) %>%
                     pull()), Diabetes_binary, estimate)
 
 conf_mat(diabetes_test %>%
-           mutate(estimate = log_res_fit %>% 
+           mutate(estimate = log_train_fit %>% 
                     predict(diabetes_test) %>%
                     pull()), Diabetes_binary, estimate)
 
-final_log_model = log_workflow %>%
-  fit(diabetes_data)
-
-tidy(final_log_model)
 
 ```
 
-
-
-
-Classification Tree
+### Testing on Test Set
 ```{r}
-tree_spec <- decision_tree(
+log_workflow3 %>%
+  last_fit(diabetes_split, metrics = metric_set (mn_log_loss)) %>%
+  collect_metrics()
+
+```
+### Fit to the entire dataset
+
+```{r}
+final_log_model = log_workflow3 %>%
+  fit(diabetes_data)
+
+tidy(final_log_model)
+```
+
+
+##Classification Tree
+
+### Define model and engine
+```{r}
+tree_spec = decision_tree(
   cost_complexity = tune(),
   tree_depth = tune(),
   min_n = 20
 ) %>%
   set_engine("rpart") %>%
   set_mode("classification")
+```
 
-
-tree_workflow <- workflow() %>%
-  add_recipe(diabetes_recipe) %>%
+### Create Workflow
+```{r}
+tree_workflow = workflow() %>%
+  add_recipe(diabetes_rec3) %>%
   add_model(tree_spec)
 
 
+```
 
-tree_grid <- grid_regular(
+### Select tuning parameters
+
+```{r}
+
+tree_grid = grid_regular(
   cost_complexity(),
   tree_depth(),
   levels = c(cost_complexity = 10, tree_depth = 5)
 )
 
-
-
-tree_fits <- tree_workflow |> 
-  tune_grid(resamples = bike_CV_folds,
+tree_fits = tree_workflow %>% 
+  tune_grid(resamples = cv_folds,
             grid = tree_grid)
 
-tree_fits |>
-  collect_metrics() |>
-  filter(.metric == "mn_log_loss") |>
+tree_fits %>%
+  collect_metrics() %>%
+  filter(.metric == "mn_log_loss") %>%
   arrange(mean)
+```
 
+### Select the Best model 
+```{r}
 
-tree_best_params <- select_best(tree_fits, metric = "mn_log_loss")
+tree_best_params = select_best(tree_fits, metric = "mn_log_loss")
 
-tree_final_workflow <- tree_workflow |>
+tree_final_workflow = tree_workflow %>%
   finalize_workflow(tree_best_params)
 
-tree_final_fit <- tree_final_workflow |>
+tree_final_fit = tree_final_workflow %>%
   last_fit(diabetes_split)
 
-tree_final_fit |>
+tree_final_fit %>%
   collect_metrics()
 
-tree_final_model <- extract_workflow(tree_final_fit) 
-tree_final_model
+tree_final_model = extract_workflow(tree_final_fit) 
 
 tree_final_model %>%
   extract_fit_engine() %>%
@@ -158,8 +210,60 @@ tree_final_model %>%
 
 ```
 
+
+
+
+
 ## Random Forest 
 
+### Define Model
+
+```{r}
+rf_spec = rand_forest(mtry = tune()) %>% 
+  set_engine("ranger") %>% 
+  set_mode("classification")
+```
+
+### Create Workflows
+```{r}
+rf_workflow = workflow() %>% 
+  add_recipe(diabetes_rec3) %>%
+  add_model(rf_spec)
+```
+
+### Fit to CV folds
+
+```{r}
+rf_grid <- grid_regular(mtry(range = c(1, 4)), levels = 5)
+
+rf_fit = rf_workflow %>%
+  tune_grid(
+    resamples = cv_folds,
+            grid = 5,
+            metrics = metric_set(accuracy, mn_log_loss))
+
+rf_fit %>% 
+  collect_metrics() %>% 
+  filter(.metric == "mn_log_loss") %>% 
+  arrange(mean)
+```
+
+```{r}
+
+
+
+rf_best_params = select_best(rf_fit, metric = "mn_log_loss")
+rf_best_params
+
+
+rf_final_wkf = rf_wkf %>%
+finalize_workflow(rf_best_params)
+
+rf_final_fit = rf_final_wkf %>%
+last_fit(diabetes_split, metrics = metric_set(accuracy, mn_log_loss))
+
+rf_final_fit %>% collect_metrics()
+```
 
 
 
