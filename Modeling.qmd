@@ -21,27 +21,28 @@ library(ranger)
 data_raw = read_csv("diabetes_binary_health_indicators_BRFSS2015.csv")
 
 # convert variables to factors
-diabetes_data = data_raw %>%
+diabetes_data <- data_raw %>%
   mutate(
     Diabetes_binary = factor(Diabetes_binary, levels = c(0, 1), labels = c("No Diabetes", "Diabetes")),
     PhysActivity = factor(PhysActivity, levels = c(0, 1), labels = c("No", "Yes")),
+    HighChol = factor(HighChol, levels = c(0, 1), labels = c("No", "Yes")),
+    HighBP = factor(HighBP, levels = c(0, 1), labels = c("No", "Yes")),
     AgeGroup = factor(Age, levels = 1:13, labels = c(
-  "18–24",
-  "25–29",
-  "30–34",
-  "35–39",
-  "40–44",
-  "45–49",
-  "50–54",
-  "55–59",
-  "60–64",
-  "65–69",
-  "70–74",
-  "75–79",
-  "80+"
-))
-)
-
+      "18–24",
+      "25–29",
+      "30–34",
+      "35–39",
+      "40–44",
+      "45–49",
+      "50–54",
+      "55–59",
+      "60–64",
+      "65–69",
+      "70–74",
+      "75–79",
+      "80+"
+    ))
+  )
 ```
 
 ```{r}
@@ -59,13 +60,13 @@ cv_folds = vfold_cv(diabetes_train, 5)
 
 ```{r}
 
-diabetes_rec1 = recipe(Diabetes_binary ~ BMI + Age + PhysActivity, data = diabetes_train) %>%
+diabetes_rec1 = recipe(Diabetes_binary ~ BMI + AgeGroup + PhysActivity, data = diabetes_train) %>%
   step_normalize(all_numeric(), -Diabetes_binary)
 
-diabetes_rec2 = recipe(Diabetes_binary ~ BMI + Age + PhysActivity + HighBP, data = diabetes_train) %>%
+diabetes_rec2 = recipe(Diabetes_binary ~ BMI + AgeGroup + PhysActivity + HighBP, data = diabetes_train) %>%
   step_normalize(all_numeric(), -Diabetes_binary)
 
-diabetes_rec3 = recipe(Diabetes_binary ~ BMI + Age + PhysActivity + HighChol + HighBP, data = diabetes_train) %>%
+diabetes_rec3 = recipe(Diabetes_binary ~ BMI + AgeGroup + PhysActivity + HighChol + HighBP, data = diabetes_train) %>%
   step_normalize(all_numeric(), -Diabetes_binary)
 ```
 
@@ -132,7 +133,7 @@ conf_mat(diabetes_test %>%
 ### Testing on Test Set
 ```{r}
 log_workflow3 %>%
-  last_fit(diabetes_split, metrics = metric_set (mn_log_loss)) %>%
+  last_fit(diabetes_split, metrics = metric_set(mn_log_loss)) %>%
   collect_metrics()
 
 ```
@@ -143,10 +144,13 @@ final_log_model = log_workflow3 %>%
   fit(diabetes_data)
 
 tidy(final_log_model)
+
+log_final_fit = log_workflow3 %>%
+  last_fit(diabetes_split, metrics = metric_set(accuracy, mn_log_loss))
 ```
 
 
-##Classification Tree
+## Classification Tree
 
 ### Define model and engine
 ```{r}
@@ -165,7 +169,6 @@ tree_workflow = workflow() %>%
   add_recipe(diabetes_rec3) %>%
   add_model(tree_spec)
 
-
 ```
 
 ### Select tuning parameters
@@ -175,12 +178,13 @@ tree_workflow = workflow() %>%
 tree_grid = grid_regular(
   cost_complexity(),
   tree_depth(),
-  levels = c(cost_complexity = 10, tree_depth = 5)
+  levels = list(cost_complexity = 5, tree_depth = 5)
 )
 
 tree_fits = tree_workflow %>% 
   tune_grid(resamples = cv_folds,
-            grid = tree_grid)
+            grid = tree_grid,
+            metrics = metric_set(mn_log_loss))
 
 tree_fits %>%
   collect_metrics() %>%
@@ -212,8 +216,6 @@ tree_final_model %>%
 
 
 
-
-
 ## Random Forest 
 
 ### Define Model
@@ -239,7 +241,7 @@ rf_grid <- grid_regular(mtry(range = c(1, 4)), levels = 5)
 rf_fit = rf_workflow %>%
   tune_grid(
     resamples = cv_folds,
-            grid = 5,
+            grid = rf_grid,
             metrics = metric_set(accuracy, mn_log_loss))
 
 rf_fit %>% 
@@ -249,22 +251,31 @@ rf_fit %>%
 ```
 
 ```{r}
-
-
-
 rf_best_params = select_best(rf_fit, metric = "mn_log_loss")
 rf_best_params
 
 
-rf_final_wkf = rf_wkf %>%
+rf_final_workflow = rf_workflow %>%
 finalize_workflow(rf_best_params)
 
-rf_final_fit = rf_final_wkf %>%
+rf_final_fit = rf_final_workflow %>%
 last_fit(diabetes_split, metrics = metric_set(accuracy, mn_log_loss))
 
-rf_final_fit %>% collect_metrics()
+rf_final_fit %>%
+  collect_metrics()
 ```
 
+## Comparting Models
+
+```{r}
+rf_final_fit %>%
+  collect_metrics
+
+
+tree_final_fit %>%
+  collect_metrics()
+
+```
 
 
 
