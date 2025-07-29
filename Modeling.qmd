@@ -287,6 +287,6 @@ Best model is Random forest
 
 
 
-
+[Back to EDA Page](EDA.html)
 
 
