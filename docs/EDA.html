@@ -142,17 +142,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="introduction" class="level2">
 <h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
-<p>Here we are going to analyse and explore the 2015 BRFSS Diabetes Health Indicators data set</p>
+<p>Here we are going to analyse and explore the 2015 BRFSS Diabetes Health Indicators data set.</p>
 <p><strong>Variables</strong></p>
 <p>Response variable: Diabetes_binary</p>
 <p>Demographics Variables: Age, Education, Smoker, Sex, Income</p>
 <p>Clinical Variables: BMI, PhysActivity, HighBP, HighChol, CholCheck, Stroke, HeartDiseaseOrAttack, …</p>
-<section id="purpose-of-the-eda" class="level3">
-<h3 class="anchored" data-anchor-id="purpose-of-the-eda">Purpose of the EDA</h3>
 <p>For this EDA I will explore Age, Physical Activity, and BMI, as all three variables have strong well established links as risk factors for Diabetes.</p>
 <p>Physical Activity helps regulate blood glucose, and constant sedentary behavior has been linked to increases diabetic risk.</p>
 <p>Age leads to diabetic incidence rising as beta-cell function declines</p>
 <p>BMI is a well established risk factor and high amount of fat lead to insulin resistance</p>
+<section id="purpose-of-the-eda" class="level3">
+<h3 class="anchored" data-anchor-id="purpose-of-the-eda">Purpose of the EDA</h3>
+<p>The purpose of this exploratory data analysis is to gain a better understanding of the variables within the data set and identify potential predictors of diabetes. By examining distributions and relationships between the selected predictors and diabetes status we can discover insights than will inform our modeling.</p>
+<p>The ultimate goal of modeling is to develop a predictive model that can accurately classify individuals as being diabetic or not diabetic. This model could be used with a broader strategy of supporting early identification and preventive strategies.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Read In packages</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -184,9 +186,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
 </div>
 </div>
-<p>Read in data</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>data_raw <span class="ot">=</span> <span class="fu">read_csv</span>(<span class="st">"diabetes_binary_health_indicators_BRFSS2015.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Read in data</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>data_raw <span class="ot">=</span> <span class="fu">read_csv</span>(<span class="st">"diabetes_binary_health_indicators_BRFSS2015.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Rows: 253680 Columns: 22
 ── Column specification ────────────────────────────────────────────────────────
@@ -291,10 +293,13 @@ dbl (22): Diabetes_binary, HighBP, HighChol, CholCheck, BMI, Smoker, Stroke,...
                    0                    0 </code></pre>
 </div>
 </div>
+<p>All data has been factored and there is no missingness in the data set.</p>
 </section>
 <section id="univariate-exploration" class="level3">
 <h3 class="anchored" data-anchor-id="univariate-exploration">Univariate Exploration</h3>
-<p>Here I am going to check the proportion of diabetics in the dataset</p>
+<section id="diabetes-proportion" class="level4">
+<h4 class="anchored" data-anchor-id="diabetes-proportion">Diabetes Proportion</h4>
+<p>The first thing we’re going to check is the proportion of diabetics in the data set. This gives us an idea of the data we are working with and what to check moving forward.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>diabetes_data <span class="sc">%&gt;%</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(Diabetes_binary) <span class="sc">%&gt;%</span></span>
@@ -323,7 +328,11 @@ dbl (22): Diabetes_binary, HighBP, HighChol, CholCheck, BMI, Smoker, Stroke,...
 </div>
 </div>
 </div>
-<p>Looking at the age distributions throughout the dataset</p>
+<p>Through this we can see that there is a far larger proportion of non diabetics in the data set.</p>
+</section>
+<section id="age-group-distribution" class="level4">
+<h4 class="anchored" data-anchor-id="age-group-distribution">Age Group Distribution</h4>
+<p>Next we’re going to check the age group distribution across the data set. The original data set had age groups assigned to one of 13 factors. That factoring was removed in the original age brackets were established for better readability</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>diabetes_data <span class="sc">%&gt;%</span></span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> AgeGroup, <span class="at">fill =</span> AgeGroup)) <span class="sc">+</span></span>
@@ -342,13 +351,17 @@ dbl (22): Diabetes_binary, HighBP, HighChol, CholCheck, BMI, Smoker, Stroke,...
 </div>
 </div>
 </div>
-<p>Looking at the physical activity among participants:</p>
+<p>While there is a large range of individuals in the data set, the large majority of participants are older.</p>
+</section>
+<section id="physical-activity" class="level4">
+<h4 class="anchored" data-anchor-id="physical-activity">Physical Activity</h4>
+<p>Next we’re going to analyze What proportion of the participants are physically active, This gives us an idea as physical activity is highly correlated to diabetic outcomes.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>diabetes_data <span class="sc">%&gt;%</span></span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> PhysActivity, <span class="at">fill =</span> PhysActivity)) <span class="sc">+</span></span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>() <span class="sc">+</span></span>
 <span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Physical Activity Distribution"</span>,</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Physically Active?"</span>,</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Physically Active"</span>,</span>
 <span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Count"</span>) <span class="sc">+</span></span>
 <span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
@@ -359,7 +372,11 @@ dbl (22): Diabetes_binary, HighBP, HighChol, CholCheck, BMI, Smoker, Stroke,...
 </div>
 </div>
 </div>
-<p>Looking at BMI data across the data</p>
+<p>Here we can see that a majority of the data set does self report as physically active. This might explain the low diabetic population proportion within the data set.</p>
+</section>
+<section id="bmi" class="level4">
+<h4 class="anchored" data-anchor-id="bmi">BMI</h4>
+<p>Next we’re going to analyze the BMI distribution across the entire data set. This allows us to see if we have an abnormal distribution of exceedingly high BMI in the population data set.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>diabetes_data <span class="sc">%&gt;%</span></span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> BMI)) <span class="sc">+</span></span>
@@ -376,10 +393,14 @@ dbl (22): Diabetes_binary, HighBP, HighChol, CholCheck, BMI, Smoker, Stroke,...
 </div>
 </div>
 </div>
+<p>Here we can see that the population distribution centers around the mid 20s with a long tail. This indicates a relatively normal population with average BMI’s however there are significant outliers as BMI stretch all the way up to the mid 90s.</p>
+</section>
 </section>
 <section id="bivariate-exploration" class="level3">
 <h3 class="anchored" data-anchor-id="bivariate-exploration">Bivariate exploration</h3>
-<p>See how diabetes changes between age groups</p>
+<section id="diabetes-by-age-group" class="level4">
+<h4 class="anchored" data-anchor-id="diabetes-by-age-group">Diabetes by age group</h4>
+<p>Here we want to explore how the proportion of individuals with diabetes varies across age groups and this allows us to assess whether diabetic outcomes tend to increase with age.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>diabetes_data <span class="sc">%&gt;%</span></span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> AgeGroup, <span class="at">fill =</span> Diabetes_binary)) <span class="sc">+</span></span>
@@ -395,7 +416,11 @@ dbl (22): Diabetes_binary, HighBP, HighChol, CholCheck, BMI, Smoker, Stroke,...
 </div>
 </div>
 </div>
-<p>diabetes vs physical activity</p>
+<p>The graph shows that diabetic outcomes tend to increase with age. However the trend appears to slow down with the oldest of age groups, which might indicate some survivorship bias as individuals who reach advanced age without developing diabetes may have protective factors that reduce their risk.</p>
+</section>
+<section id="diabetes-and-physical-activity" class="level4">
+<h4 class="anchored" data-anchor-id="diabetes-and-physical-activity">Diabetes and Physical Activity</h4>
+<p>Regular physical activity is recommended to reduce the development of type 2 diabetes by improving insulin sensitivity. In this section we can explore the relationship between self reported physical activity and diabetic status.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>diabetes_data <span class="sc">%&gt;%</span></span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> PhysActivity, <span class="at">fill =</span> Diabetes_binary)) <span class="sc">+</span></span>
@@ -411,7 +436,11 @@ dbl (22): Diabetes_binary, HighBP, HighChol, CholCheck, BMI, Smoker, Stroke,...
 </div>
 </div>
 </div>
-<p>diabetes vs BMI</p>
+<p>In this graph we can see how physical activity does show a lower proportion of diabetics The graph shows that individuals who report engaging in physical activity tend to have a lower proportion of diabetic outcomes compared to those who do not.</p>
+</section>
+<section id="diabetes-vs-bmi" class="level4">
+<h4 class="anchored" data-anchor-id="diabetes-vs-bmi">Diabetes Vs BMI</h4>
+<p>The body mass index has widely been used as an indicator for categorizing individuals as underweight normal weight or overweight. Given that elevated BMI is a major risk factor for type 2 diabetes the section examines how BMI values differ between individuals with and without diabetes.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>diabetes_data <span class="sc">%&gt;%</span></span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> Diabetes_binary, <span class="at">y =</span> BMI, <span class="at">fill =</span> Diabetes_binary)) <span class="sc">+</span></span>
@@ -426,6 +455,7 @@ dbl (22): Diabetes_binary, HighBP, HighChol, CholCheck, BMI, Smoker, Stroke,...
 </div>
 </div>
 </div>
+<p>This violin plot reveals that individuals diagnosed with diabetes tend to have higher BMI values compared to those who are not. While there is overlap in the distributions the median and density bulge of the diabetic group lies further up indicating that individuals with diabetes are more likely to fall into overweight or obese categories.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>diabetes_data <span class="sc">%&gt;%</span></span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> BMI, <span class="at">fill =</span> Diabetes_binary)) <span class="sc">+</span></span>
@@ -440,10 +470,11 @@ dbl (22): Diabetes_binary, HighBP, HighChol, CholCheck, BMI, Smoker, Stroke,...
 </div>
 </div>
 </div>
+<p>Further the density plot clearly shows that peak BMI for non diabetic Individuals is lower and more narrowly distributed centered around 25. Meanwhile the distribution for diabetic individuals is shifted right with a flatter curve that extends into higher BMI ranges. This supports the association between increased fat and diabetic prevalence and reinforces BMI as a strong candidate predictor.</p>
 <p><a href="Modeling.html">Click here for the Modeling Page</a></p>
-<p>this is junk test to see if it shows up</p>
 
 
+</section>
 </section>
 </section>
 

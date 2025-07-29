@@ -4,7 +4,7 @@ author: Keshav Ramesh
 format: html
 ---
 ## Introduction
-Here we are going to analyse and explore the 2015 BRFSS Diabetes Health Indicators data set 
+Here we are going to analyse and explore the 2015 BRFSS Diabetes Health Indicators data set.
 
 **Variables**
 
@@ -14,10 +14,6 @@ Demographics Variables: Age, Education, Smoker, Sex, Income
 
 Clinical Variables: BMI, PhysActivity, HighBP, HighChol, CholCheck, Stroke, HeartDiseaseOrAttack, ...
 
-
-
-### Purpose of the EDA
-
 For this EDA I will explore Age, Physical Activity, and BMI, as all three variables have strong well established links as risk factors for Diabetes. 
 
 Physical Activity helps regulate blood glucose, and constant sedentary behavior has been linked to increases diabetic risk.  
@@ -26,15 +22,21 @@ Age leads to diabetic incidence rising as beta-cell function declines
 
 BMI is a well established risk factor and high amount of fat lead to insulin resistance
 
+### Purpose of the EDA
+
+The purpose of this exploratory data analysis is to gain a better understanding of the variables within the data set and identify potential predictors of diabetes. By examining distributions and relationships between the selected predictors and diabetes status we can discover insights than will inform our modeling. 
+
+The ultimate goal of modeling is to develop a predictive model that can accurately classify individuals as being diabetic or not diabetic. This model could be used with a broader strategy of supporting early identification and preventive strategies.
+
 
 ```{r}
 # Read In packages
 library(tidyverse)
 ```
 
-Read in data
-```{r}
 
+```{r}
+#Read in data
 data_raw = read_csv("diabetes_binary_health_indicators_BRFSS2015.csv")
 
 # convert variables to factors
@@ -64,10 +66,14 @@ diabetes_data = data_raw %>%
 summary(diabetes_data)
 colSums(is.na(diabetes_data))
 ```
+All data has been factored and there is no missingness in the data set.
+
 
 ### Univariate Exploration
 
-Here I am going to check the proportion of diabetics in the dataset
+#### Diabetes Proportion
+
+The first thing we're going to check is the proportion of diabetics in the data set. This gives us an idea of the data we are working with and what to check moving forward.
 
 ```{r}
 diabetes_data %>%
@@ -85,8 +91,10 @@ diabetes_data %>% ggplot(
        y = "Count") +
   theme_minimal()
 ```
+Through this we can see that there is a far larger proportion of non diabetics in the data set.
 
-Looking at the age distributions throughout the dataset
+#### Age Group Distribution
+Next we're going to check the age group distribution across the data set. The original data set had age groups assigned to one of 13 factors. That factoring was removed in the original age brackets were established for better readability
 
 ```{r}
 diabetes_data %>%
@@ -100,22 +108,25 @@ diabetes_data %>%
   theme(legend.position = "none")
 
 ```
+While there is a large range of individuals in the data set, the large majority of participants are older.
 
-
-Looking at the physical activity among participants:
+#### Physical Activity
+Next we're going to analyze What proportion of the participants are physically active, This gives us an idea as physical activity is highly correlated to diabetic outcomes.
 
 ```{r}
 diabetes_data %>%
   ggplot(aes(x = PhysActivity, fill = PhysActivity)) +
   geom_bar() +
   labs(title = "Physical Activity Distribution",
-       x = "Physically Active?",
+       x = "Physically Active",
        y = "Count") +
   theme_minimal()
 ```
+Here we can see that a majority of the data set does self report as physically active. This might explain the low diabetic population proportion within the data set.
 
-Looking at BMI data across the data
+#### BMI
 
+Next we're going to analyze the BMI distribution across the entire data set. This allows us to see if we have an abnormal distribution of exceedingly high BMI in the population data set.
 ```{r}
 diabetes_data %>%
   ggplot(aes(x = BMI)) +
@@ -125,10 +136,13 @@ diabetes_data %>%
        y = "Count") +
   theme_minimal()
 ```
+Here we can see that the population distribution centers around the mid 20s with a long tail. This indicates a relatively normal population with average BMI's however there are significant outliers as BMI stretch all the way up to the mid 90s.
 
 ### Bivariate exploration
 
-See how diabetes changes between age groups 
+#### Diabetes by age group
+
+Here we want to explore how the proportion of individuals with diabetes varies across age groups and this allows us to assess whether diabetic outcomes tend to increase with age.
 
 ```{r}
 diabetes_data %>%
@@ -139,9 +153,12 @@ diabetes_data %>%
   theme_minimal() 
 
 ```
+The graph shows that diabetic outcomes tend to increase with age. However the trend appears to slow down with the oldest of age groups, which might indicate some survivorship bias as individuals who reach advanced age without developing diabetes may have protective factors that reduce their risk.
 
+#### Diabetes and Physical Activity
 
-diabetes vs physical activity
+Regular physical activity is recommended to reduce the development of type 2 diabetes by improving insulin sensitivity. In this section we can explore the relationship between self reported physical activity and diabetic status.
+
 ```{r}
 diabetes_data %>%
   ggplot(aes(x = PhysActivity, fill = Diabetes_binary)) +
@@ -151,7 +168,13 @@ diabetes_data %>%
   theme_minimal()
 
 ```
-diabetes vs BMI
+
+In this graph we can see how physical activity does show a lower proportion of diabetics
+The graph shows that individuals who report engaging in physical activity tend to have a lower proportion of diabetic outcomes compared to those who do not.
+
+#### Diabetes Vs BMI
+
+The body mass index has widely been used as an indicator for categorizing individuals as underweight normal weight or overweight. Given that elevated BMI is a major risk factor for type 2 diabetes the section examines how BMI values differ between individuals with and without diabetes.
 
 ```{r}
 diabetes_data %>%
@@ -161,6 +184,7 @@ diabetes_data %>%
   theme_minimal()
 
 ```
+This violin plot reveals that individuals diagnosed with diabetes tend to have higher BMI values compared to those who are not. While there is overlap in the distributions the median and density bulge of the diabetic group lies further up indicating that individuals with diabetes are more likely to fall into overweight or obese categories.
 
 ```{r}
 diabetes_data %>%
@@ -170,16 +194,10 @@ diabetes_data %>%
   theme_minimal()
 
 ```
+Further the density plot clearly shows that peak BMI for non diabetic Individuals is lower and more narrowly distributed centered around 25. Meanwhile the distribution for diabetic individuals is shifted right with a flatter curve that extends into higher BMI ranges. This supports the association between increased fat and diabetic prevalence and reinforces BMI as a strong candidate predictor.
 
 
-
-[Click here for the Modeling Page](Modeling.html)
-
-
-
-
-
-this is junk test to see if it shows up
+[Click here for the Modeling Page](Modeling.html) 
 
 
 

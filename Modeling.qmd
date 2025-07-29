@@ -5,7 +5,29 @@ format: html
 ---
 
 ## Introduction
+Here we are going to analyse and explore the 2015 BRFSS Diabetes Health Indicators data set.
 
+**Variables**
+
+Response variable: Diabetes_binary
+
+Demographics Variables: Age, Education, Smoker, Sex, Income
+
+Clinical Variables: BMI, PhysActivity, HighBP, HighChol, CholCheck, Stroke, HeartDiseaseOrAttack, ...
+
+For this EDA I will explore Age, Physical Activity, and BMI, as all three variables have strong well established links as risk factors for Diabetes. 
+
+Physical Activity helps regulate blood glucose, and constant sedentary behavior has been linked to increases diabetic risk.  
+
+Age leads to diabetic incidence rising as beta-cell function declines
+
+BMI is a well established risk factor and high amount of fat lead to insulin resistance
+
+In addition to these from the exploratory data analysis we will also be including high cholesterol and high blood pressure
+
+High Blood Pressure Frequently occurs alongside diabetes and is considered a common comorbidity. Chronically high blood pressure can damage blood vessels and impact insulin delivery increasing diabetic risk.
+
+High cholesterol is often found in individuals with type 2 diabetes. It can affect underlying insulin resistance and cardiovascular function making it important to consider in predictive modeling.
 
 ```{r, message=FALSE, warning=FALSE}
 library(tidyverse)
@@ -46,19 +68,34 @@ diabetes_data <- data_raw %>%
 ```
 
 ```{r}
+
+
 set.seed(101)
 
+#Split into testing and training sets
 diabetes_split = initial_split(diabetes_data, prop = .7)
 diabetes_train = training(diabetes_split)
 diabetes_test = testing(diabetes_split)
 
+
+## create cv folds
 cv_folds = vfold_cv(diabetes_train, 5)
 
 ```
 
 ## Log Regression Model
 
+A logistic regression model is a classification algorithm used to model the probability of a binary outcome. Unlike linear regression which predicts a continuous value, logistic regression estimates the probability given inputs in particular categories. For this data set the response variable is diabetes _binary making logistic regression an appropriate technique.
+
+This model works by transforming linear predictors using a sigmoid function which maps the values and as allows us to interpret the output as probability.
+
+
+We will use logistic regression for this data set because the target variable is binary, the data set offers appropriate explanatory variables that relate to the probability of having diabetes, and it is a strong model to form a baseline before exploring other multiple alternatives.
+
+
 ```{r}
+
+## Create recipies
 
 diabetes_rec1 = recipe(Diabetes_binary ~ BMI + AgeGroup + PhysActivity, data = diabetes_train) %>%
   step_normalize(all_numeric(), -Diabetes_binary)
@@ -72,10 +109,11 @@ diabetes_rec3 = recipe(Diabetes_binary ~ BMI + AgeGroup + PhysActivity + HighCho
 
 ### Create Workflows
 ```{r}
-
+# set engine
 log_spec = logistic_reg() %>%
   set_engine("glm")
 
+## create workflows
 log_workflow1 = workflow() %>%
   add_model(log_spec) %>%
   add_recipe(diabetes_rec1)
@@ -111,6 +149,7 @@ log_res_fit3 %>% collect_metrics()) %>%
 mutate(Model = c("Model1", "Model1", "Model2", "Model2", "Model3", "Model3")) %>%
 select(Model, everything())
 ```
+Model 3 has the lowest log loss of any of the three potential models therefore we will be using that model moving forward.
 
 ### Finding COnfustion Matrix
 ```{r}
@@ -140,14 +179,15 @@ log_workflow3 %>%
 ### Fit to the entire dataset
 
 ```{r}
+# fit to the entire dataset
 final_log_model = log_workflow3 %>%
   fit(diabetes_data)
-
+#Tidy final model output
 tidy(final_log_model)
-
+## test on test set
 log_final_fit = log_workflow3 %>%
   last_fit(diabetes_split, metrics = metric_set(accuracy, mn_log_loss))
-
+#collect metrics
 log_final_fit %>%
   collect_metrics
 
@@ -159,8 +199,14 @@ log_final_model_train
 
 ## Classification Tree
 
+A classification tree is a non paramedic model used for predicting categorical outcomes. It works by splitting the data set based on values of predictor variables to create decision rules that relate to predictions. Each node of the tree represents a decision based off one of the predictors in each terminal node assigns a prediction.
+
+We can use a classification tree for this data because they are very highly interpretable and easy to visualize. They can readily capture non-linear relationships as well as interactions between different variables, and they don't make any assumptions about the distribution of predictors or response variables. However since trees can easily overfit it is important to tune the complexity to balance fit.
+
 ### Define model and engine
 ```{r}
+
+## set model and engine
 tree_spec = decision_tree(
   cost_complexity = tune(),
   tree_depth = tune(),
@@ -181,7 +227,7 @@ tree_workflow = workflow() %>%
 ### Select tuning parameters
 
 ```{r}
-
+## make and tune the model
 tree_grid = grid_regular(
   cost_complexity(),
   tree_depth(),
@@ -192,7 +238,7 @@ tree_fits = tree_workflow %>%
   tune_grid(resamples = cv_folds,
             grid = tree_grid,
             metrics = metric_set(mn_log_loss))
-
+## collect metrics
 tree_fits %>%
   collect_metrics() %>%
   filter(.metric == "mn_log_loss") %>%
@@ -201,15 +247,16 @@ tree_fits %>%
 
 ### Select the Best model 
 ```{r}
-
+# find best model
 tree_best_params = select_best(tree_fits, metric = "mn_log_loss")
 
+#final workflow
 tree_final_workflow = tree_workflow %>%
   finalize_workflow(tree_best_params)
-
+# test on test dataset
 tree_final_fit = tree_final_workflow %>%
   last_fit(diabetes_split, metrics = metric_set(accuracy, mn_log_loss))
-
+## collect metrics
 tree_final_fit %>%
   collect_metrics()
 
@@ -220,6 +267,7 @@ tree_final_model_train
 
 tree_final_model = extract_workflow(tree_final_fit) 
 
+# Plot the classification tree
 tree_final_model %>%
   extract_fit_engine() %>%
   rpart.plot::rpart.plot(roundint = FALSE)
@@ -230,9 +278,15 @@ tree_final_model %>%
 
 ## Random Forest 
 
+A random forest is an ensemble learning method that builds a collection of decision trees and combines their predictions to produce more accurate and robust models. Each tree is trained on a bootstrap sample of the data and each split is a random subset of predictors rather than all of them. This randomness helps reduce variance and makes the final model less prone to overfitting.
+
+We will use a random forest because while classification trees very intuitive they're also highly variable models and small changes in the data can lead to wildly different trees. Random forests addressed this limitation by averaging the predictions, and lead to better generalizations.
+
 ### Define Model
 
 ```{r}
+
+## set model and engine
 rf_spec = rand_forest(mtry = tune()) %>% 
   set_engine("ranger") %>% 
   set_mode("classification")
@@ -240,16 +294,18 @@ rf_spec = rand_forest(mtry = tune()) %>%
 
 ### Create Workflows
 ```{r}
+
 rf_workflow = workflow() %>% 
   add_recipe(diabetes_rec3) %>%
   add_model(rf_spec)
 ```
 
-### Fit to CV folds
+### Tuning Model
 
 ```{r}
 rf_grid <- grid_regular(mtry(range = c(1, 4)), levels = 5)
 
+# tune model
 rf_fit = rf_workflow %>%
   tune_grid(
     resamples = cv_folds,
@@ -263,16 +319,20 @@ rf_fit %>%
 ```
 
 ```{r}
+
+## select best model
 rf_best_params = select_best(rf_fit, metric = "mn_log_loss")
 rf_best_params
 
-
+#final workflow
 rf_final_workflow = rf_workflow %>%
   finalize_workflow(rf_best_params)
 
+##test on test set
 rf_final_fit = rf_final_workflow %>% 
   last_fit(diabetes_split, metrics = metric_set(accuracy, mn_log_loss))
 
+## collect metrics
 rf_final_fit %>%
   collect_metrics()
 
@@ -283,7 +343,7 @@ rf_final_model_train
 
 ```
 
-## Comparting Models
+## Comparing Models
 
 ```{r}
 
@@ -296,50 +356,7 @@ tree_final_fit %>%
 rf_final_fit %>%
   collect_metrics
 ```
-```{r}
-# Extract final fitted workflows from last_fit objects
-log_final_model <- extract_workflow(log_final_fit)
-tree_final_model <- extract_workflow(tree_final_fit)
-rf_final_model <- extract_workflow(rf_final_fit)
-
-# Generate predictions on test set for all three
-log_preds_test <- predict(log_final_model, diabetes_test, type = "prob") %>%
-  bind_cols(predict(log_final_model, diabetes_test)) %>%
-  bind_cols(diabetes_test %>% select(Diabetes_binary))
-
-tree_preds_test <- predict(tree_final_model, diabetes_test, type = "prob") %>%
-  bind_cols(predict(tree_final_model, diabetes_test)) %>%
-  bind_cols(diabetes_test %>% select(Diabetes_binary))
-
-rf_preds_test <- predict(rf_final_model, diabetes_test, type = "prob") %>%
-  bind_cols(predict(rf_final_model, diabetes_test)) %>%
-  bind_cols(diabetes_test %>% select(Diabetes_binary))
-
-
-```
-
-```{r}
-evaluate_model <- function(preds) {
-  tibble(
-    mn_log_loss = mn_log_loss(preds, truth = Diabetes_binary, .pred_Diabetes)$.estimate,
-    accuracy = accuracy(preds, truth = Diabetes_binary, estimate = .pred_class)$.estimate
-  )
-}
-
-results <- bind_rows(
-  evaluate_model(log_preds),
-  evaluate_model(tree_preds),
-  evaluate_model(rf_preds)
-) %>%
-  mutate(Model = c("Logistic Regression", "Classification Tree", "Random Forest")) %>%
-  select(Model, everything())
-
-results %>% arrange(mn_log_loss)
-
-```
-
-
-Best model is classification Tree
+Looking at the log loss comparison of all of the models the random forest has the lowest log loss.
 
 
 
