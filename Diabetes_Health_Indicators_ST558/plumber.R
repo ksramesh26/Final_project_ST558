@@ -22,18 +22,13 @@ diabetes_data <- data_raw %>%
 diabetes_rec3 <- recipe(Diabetes_binary ~ BMI + AgeGroup + PhysActivity + HighChol + HighBP, data = diabetes_data) %>%
   step_normalize(all_numeric(), -Diabetes_binary)
 
-rf_spec = rand_forest(mtry = tune()) %>% 
+rf_spec = rand_forest(mtry = 2) %>% 
   set_engine("ranger") %>% 
-  set_mode("classification") %>%
-  fit(diabetes_data)
+  set_mode("classification")
 
 final_model = workflow() %>% 
   add_recipe(diabetes_rec3) %>%
-  add_model(rf_spec)
-
-final_model <- workflow() %>%
-  add_recipe(diabetes_rec3) %>%
-  add_model(rand_forest(mtry = 2) %>% set_engine("ranger") %>% set_mode("classification")) %>%
+  add_model(rf_spec) %>%
   fit(diabetes_data)
 
 

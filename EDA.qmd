@@ -211,5 +211,3 @@ diabetes_data %>%
 
 
 
-
-
